@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import "./App.css";
 
 function App() {
-  const [users, setUsers] = useState([]);  
+  const [users, setUsers] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     profileImage: null,
   });
+  const [editingUserId, setEditingUserId] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -17,9 +18,7 @@ function App() {
     try {
       const response = await fetch("http://localhost:3000");
       const data = await response.json();
-      
-        setUsers(data);
-       
+      setUsers(data);
     } catch (err) {
       console.error("Error fetching users:", err);
     }
@@ -41,13 +40,19 @@ function App() {
     form.append("profileImage", formData.profileImage);
 
     try {
-      const response = await fetch("http://localhost:3000/api/upload", {
-        method: "POST",
-        body: form,
-      });
-      const newUser = await response.json();
-      setUsers((prevUsers) => [...prevUsers, newUser]);
+      const response = await fetch(
+        `http://localhost:3000/api/${
+          editingUserId ? `update/${editingUserId}` : "upload"
+        }`,
+        {
+          method: editingUserId ? "PUT" : "POST",
+          body: form,
+        }
+      );
+      await response.json();
+      setEditingUserId(null);
       setFormData({ name: "", email: "", profileImage: null });
+      fetchUsers();
     } catch (err) {
       console.error("Error uploading user:", err);
     }
@@ -62,6 +67,11 @@ function App() {
     } catch (err) {
       console.error("Error deleting user:", err);
     }
+  };
+
+  const handleEdit = (user) => {
+    setFormData({ name: user.name, email: user.email, profileImage: null });
+    setEditingUserId(user._id);
   };
 
   return (
@@ -90,9 +100,9 @@ function App() {
           type="file"
           name="profileImage"
           onChange={handleChange}
-          required
+          required={!editingUserId}
         />
-        <button type="submit">Submit</button>
+        <button type="submit">{editingUserId ? "Update" : "Submit"}</button>
       </form>
 
       <h1>Data Table</h1>
@@ -113,7 +123,7 @@ function App() {
               <td>{user.email}</td>
               <td>{user.filename}</td>
               <td>
-                <button>Update</button>
+                <button onClick={() => handleEdit(user)}>Update</button>
               </td>
               <td>
                 <button onClick={() => handleDelete(user._id)}>Delete</button>

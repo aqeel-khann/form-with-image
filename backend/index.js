@@ -56,7 +56,31 @@ app.post("/api/upload", upload.single("profileImage"), async (req, res) => {
     filename,
   });
 
-  res.redirect("/");
+  res.status(201).json(user);
+});
+
+app.put("/api/update/:id", upload.single("profileImage"), async (req, res) => {
+  const { id } = req.params;
+  const { name, email } = req.body;
+  const filename = req.file ? req.file.filename : undefined;
+
+  try {
+    const user = await UserModel.findById(id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.name = name || user.name;
+    user.email = email || user.email;
+    if (filename) {
+      user.filename = filename;
+    }
+
+    await user.save();
+    res.status(200).json(user);
+  } catch (err) {
+    res.status(500).json({ error: "Error updating user" });
+  }
 });
 
 app.delete("/api/users/:id", async (req, res) => {
